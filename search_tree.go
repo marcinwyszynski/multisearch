@@ -31,12 +31,10 @@ func newNode(content string, depth int) *node {
 
 // add places the text in the tree, returning the number of operations
 // performed.
-func (n *node) add(text []string) error {
-	if len(text) == 0 && n.terminal {
-		return fmt.Errorf("duplicate entry: %q", n)
-	}
-	if len(text) == 0 && !n.terminal {
-		return fmt.Errorf("substring of %q", n)
+func (n *node) add(text []string) *node {
+	if len(text) == 0 {
+		n.terminal = true
+		return n
 	}
 	if potentialChild, exists := n.children[text[0]]; exists {
 		return potentialChild.add(text[1:])
@@ -44,11 +42,35 @@ func (n *node) add(text []string) error {
 	newChild := newNode(text[0], n.depth+1)
 	n.children[text[0]] = newChild
 	newChild.parent = n
-	if len(text) == 1 {
-		newChild.terminal = true
-		return nil
-	}
 	return newChild.add(text[1:])
+}
+
+func (n *node) walk(callback func(*node) bool) {
+	if !callback(n) {
+		return
+	}
+	for _, child := range n.children {
+		child.walk(callback)
+	}
+}
+
+func (n *node) debugString() string {
+	retVal := ""
+	for i := 0; i < n.depth; i++ {
+		retVal += "  "
+	}
+	retVal += n.String()
+	if retVal == "" {
+		retVal += "[root]"
+	}
+	if n.terminal {
+		retVal += " [t]"
+	}
+	retVal += "\n"
+	for _, child := range n.children {
+		retVal += child.debugString()
+	}
+	return retVal
 }
 
 func (n *node) String() string {
@@ -88,7 +110,8 @@ func (s *searchTreeImpl) Add(term string) error {
 	if len(sanitized) == 0 {
 		return fmt.Errorf("term only consists of stopwords: %q", term)
 	}
-	return s.head.add(sanitized)
+	s.head.add(sanitized)
+	return nil
 }
 
 // compute computes the ratio of matched expressions to the total length of the
