@@ -48,3 +48,22 @@ func (n *node) String() string {
 	}
 	return strings.TrimSpace(fmt.Sprintf("%s %s", n.parent.String(), n.content))
 }
+
+// byWeight provides an auxilary data structure for sorting nodes in
+// *decreasing* order by their weight first and (then) their depth.
+type byWeight []*node
+
+func (b byWeight) Len() int {
+	return len(b)
+}
+
+func (b byWeight) Swap(i, j int) {
+	b[i], b[j] = b[j], b[i]
+}
+
+func (b byWeight) Less(i, j int) bool {
+	if b[i].weight == b[j].weight {
+		return b[i].depth > b[j].depth
+	}
+	return b[i].weight > b[j].weight
+}

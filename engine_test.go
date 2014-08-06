@@ -35,12 +35,21 @@ func TestEngine(t *testing.T) {
 	for _, k := range tokens {
 		if k.content == "Pełnoziarnista" || k.content == "jak" {
 			if len(k.matchedBy) != 1 {
-				t.Errorf("len(k.matchedBy) = %d for %q, expected 1", len(k.matchedBy), k.content)
+				msg := "len(k.matchedBy) = %d for %q, expected 1"
+				t.Errorf(msg, len(k.matchedBy), k.content)
 			}
 		}
 		if k.content == "ryżowa" {
 			if len(k.matchedBy) != 2 {
-				t.Errorf("len(k.matchedBy) = %d for %q, expected 2", len(k.matchedBy), k.content)
+				msg := "len(k.matchedBy) = %d for %q, expected 2"
+				t.Errorf(msg, len(k.matchedBy), k.content)
+			}
+			expTopMatch := "ryżowa jak"
+			actual := k.topMatch().String()
+			if actual != expTopMatch {
+				t.Errorf("topMatch weight: %d", k.topMatch().weight)
+				msg := "k.topMatch for %q = %q, expected %q"
+				t.Errorf(msg, k.content, actual, expTopMatch)
 			}
 		}
 	}
