@@ -1,8 +1,8 @@
-package search_tree
+package multisearch
 
 import (
-	"strings"
 	"regexp"
+	"strings"
 )
 
 var (
@@ -41,8 +41,7 @@ func (t *token) recordMatch(match *node) {
 	}
 }
 
-
-func Tokenize(input string, callback func(*token)) *token {
+func tokenize(input string, callback func(*token)) *token {
 	currentToken := newToken()
 	firstToken := currentToken
 	var previousToken *token

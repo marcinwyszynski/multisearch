@@ -1,10 +1,10 @@
-package search_tree
+package multisearch
 
 import (
 	"testing"
 )
 
-type FakeStemmer struct {}
+type FakeStemmer struct{}
 
 func (f *FakeStemmer) StemString(input string) string {
 	return input
@@ -13,11 +13,11 @@ func (f *FakeStemmer) StemString(input string) string {
 func TestEngine(t *testing.T) {
 	eng := NewEngine(&FakeStemmer{})
 	needle := "pełnoziarnista ryżowa"
-	if err := eng.AddNeedle(needle); err != nil {
+	if err := eng.Add(needle, 1); err != nil {
 		t.Fatalf("eng.Add(%q) err = %v, expected nil", needle, err)
 	}
 	needle = "ryżowa jak"
-	if err := eng.AddNeedle(needle); err != nil {
+	if err := eng.Add(needle, 2); err != nil {
 		t.Fatalf("eng.Add(%q) err = %v, expected nil", needle, err)
 	}
 	ignore := "mąka"

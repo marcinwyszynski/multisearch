@@ -1,4 +1,4 @@
-package search_tree
+package multisearch
 
 import (
 	"fmt"
@@ -20,11 +20,11 @@ type Stemmer interface {
 
 type Engine struct {
 	// Root of the search tree.
-	root      *node
+	root *node
 
 	// Collection of ignored words. Stored in a map for greater retrieval
 	// efficiency.
-	ignores   map[string]struct{}
+	ignores map[string]struct{}
 
 	// Mapping of original terms to matched nodes.
 	originals map[*node]string
@@ -35,19 +35,19 @@ type Engine struct {
 
 func NewEngine(stemmer Stemmer) *Engine {
 	return &Engine{
-		root:      newNode("", 0),
+		root:      newNode("", 0, 0),
 		ignores:   make(map[string]struct{}),
 		originals: make(map[*node]string),
 		stemmer:   stemmer,
 	}
 }
 
-func (e *Engine) AddNeedle(needle string) error {
+func (e *Engine) Add(needle string, weight int) error {
 	sanitized := e.sanitize(needle)
 	if len(sanitized) == 0 {
 		return fmt.Errorf("only consists of ignores: %q", needle)
 	}
-	newNode := e.root.add(sanitized)
+	newNode := e.root.add(sanitized, weight)
 	if original, existed := e.originals[newNode]; existed {
 		return fmt.Errorf("duplicate of %q: %q", original, needle)
 	}
@@ -58,18 +58,16 @@ func (e *Engine) AddNeedle(needle string) error {
 func (e *Engine) Process(input string) *token {
 	cursors := make(map[*node]struct{})
 	cursors[e.root] = struct{}{}
-	return Tokenize(input, func(t *token) {
+	return tokenize(input, func(t *token) {
 		if t.ignored {
 			return
 		}
 		stem := strings.ToLower(e.stemmer.StemString(t.content))
 		if _, isIgnored := e.ignores[stem]; isIgnored {
-
 			t.ignored = true
 			return
 		}
-		cursorsToDelete := make([]*node, 0)
-		cursorsToAdd := make([]*node, 0)
+		cursorsToDelete, cursorsToAdd := make([]*node, 0), make([]*node, 0)
 		for cursor, _ := range cursors {
 			nextCursor, exists := cursor.children[stem]
 			if exists && nextCursor.terminal {
