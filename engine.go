@@ -11,13 +11,6 @@ var (
 	wordSplitter = regexp.MustCompile("[^\\w\\pL]+")
 )
 
-// Stemmer does the job of stemming words.
-type Stemmer interface {
-	// StemString stems a string to produce another string. The original
-	// is not changed in the process.
-	StemString(word string) string
-}
-
 type Engine struct {
 	// Root of the search tree.
 	root *node
@@ -55,7 +48,7 @@ func (e *Engine) Add(needle string, weight int) error {
 	return nil
 }
 
-func (e *Engine) Process(input string) *token {
+func (e *Engine) Process(input string) Token {
 	cursors := make(map[*node]struct{})
 	cursors[e.root] = struct{}{}
 	return tokenize(input, func(t *token) {

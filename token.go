@@ -26,6 +26,37 @@ func newToken() *token {
 	}
 }
 
+func (t *token) Ignored() bool {
+	return t.ignored
+}
+
+func (t *token) Next() Token {
+	if t.next == nil {
+		return nil
+	}
+	return t.next
+}
+
+func (t *token) Matches() []Match {
+	retVal := make([]Match, len(t.matchedBy), len(t.matchedBy))
+	for i, node := range t.matchedBy {
+		retVal[i] = node
+	}
+	return retVal
+}
+
+func (t *token) TopMatch() Match {
+	if !t.matched() {
+		return nil
+	}
+	sort.Sort(byWeight(t.matchedBy))
+	return t.matchedBy[0]
+}
+
+func (t *token) String() string {
+	return t.content
+}
+
 // recordMatch back-propagates a successful match. Please note that ignored
 // tokens are also marked with the match.
 func (t *token) recordMatch(match *node) {
@@ -46,14 +77,6 @@ func (t *token) recordMatch(match *node) {
 // nodes.
 func (t *token) matched() bool {
 	return len(t.matchedBy) > 0
-}
-
-func (t *token) topMatch() *node {
-	if !t.matched() {
-		return nil
-	}
-	sort.Sort(byWeight(t.matchedBy))
-	return t.matchedBy[0]
 }
 
 func tokenize(input string, callback func(*token)) *token {

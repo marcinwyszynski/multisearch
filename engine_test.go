@@ -25,31 +25,31 @@ func TestEngine(t *testing.T) {
 		t.Fatalf("eng.Ignore(%q) err = %v, expected nil", ignore, err)
 	}
 	haystack := "Pełnoziarnista mąka ryżowa – jak zrobić?"
-	tokens := make([]*token, 0)
-	for this := eng.Process(haystack); this != nil; this = this.next {
+	tokens := make([]Token, 0)
+	for this := eng.Process(haystack); this != nil; this = this.Next() {
 		tokens = append(tokens, this)
 	}
 	if len(tokens) != 10 {
 		t.Errorf("len(tokens) = %d, expected 10", len(tokens))
 	}
 	for _, k := range tokens {
-		if k.content == "Pełnoziarnista" || k.content == "jak" {
-			if len(k.matchedBy) != 1 {
-				msg := "len(k.matchedBy) = %d for %q, expected 1"
-				t.Errorf(msg, len(k.matchedBy), k.content)
+		if k.String() == "Pełnoziarnista" || k.String() == "jak" {
+			if len(k.Matches()) != 1 {
+				msg := "len(k.Matches()) = %d for %q, expected 1"
+				t.Errorf(msg, len(k.Matches()), k.String())
 			}
 		}
-		if k.content == "ryżowa" {
-			if len(k.matchedBy) != 2 {
-				msg := "len(k.matchedBy) = %d for %q, expected 2"
-				t.Errorf(msg, len(k.matchedBy), k.content)
+		if k.String() == "ryżowa" {
+			if len(k.Matches()) != 2 {
+				msg := "len(k.Matches()) = %d for %q, expected 2"
+				t.Errorf(msg, len(k.Matches()), k.String())
 			}
 			expTopMatch := "ryżowa jak"
-			actual := k.topMatch().String()
+			actual := k.TopMatch().String()
 			if actual != expTopMatch {
-				t.Errorf("topMatch weight: %d", k.topMatch().weight)
+				t.Errorf("topMatch weight: %d", k.TopMatch().Weight())
 				msg := "k.topMatch for %q = %q, expected %q"
-				t.Errorf(msg, k.content, actual, expTopMatch)
+				t.Errorf(msg, k.String(), actual, expTopMatch)
 			}
 		}
 	}
