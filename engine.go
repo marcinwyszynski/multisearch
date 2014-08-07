@@ -7,7 +7,6 @@ import (
 )
 
 var (
-	// Word splitter is essentially a reverse of character matcer.
 	wordSplitter = regexp.MustCompile("[^\\w\\pL]+")
 )
 

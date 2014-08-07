@@ -1,14 +1,7 @@
 package multisearch
 
 import (
-	"regexp"
-	"strings"
-)
-
-var (
-	// A regular expression matcher accepting all Unicode letters and
-	// ASCII word characters (numbers, underscore).
-	charRegexp = regexp.MustCompile("[\\pL\\w]")
+	"unicode"
 )
 
 type tokenImpl struct {
@@ -64,14 +57,18 @@ func (t *tokenImpl) recordMatch(match *matchImpl) {
 	}
 }
 
+func isWordRune(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsNumber(r)
+}
+
 func tokenize(input string, callback func(*tokenImpl)) *tokenImpl {
 	currentToken := newTokenImpl()
 	firstToken := currentToken
 	var previousToken *tokenImpl
-	for _, char := range strings.Split(input, "") {
-		isWord := charRegexp.MatchString(char)
+	for _, r := range input {
+		isWord := unicode.IsLetter(r) || unicode.IsNumber(r)
 		if currentToken.content == "" || isWord != currentToken.ignored {
-			currentToken.content += char
+			currentToken.content += string(r)
 			currentToken.ignored = !isWord
 			continue
 		}
@@ -79,7 +76,7 @@ func tokenize(input string, callback func(*tokenImpl)) *tokenImpl {
 			previousToken = currentToken
 			currentToken = newTokenImpl()
 			previousToken.next = currentToken
-			currentToken.content = char
+			currentToken.content = string(r)
 			currentToken.previous = previousToken
 			currentToken.ignored = !isWord
 			callback(previousToken)
