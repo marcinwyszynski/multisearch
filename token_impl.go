@@ -1,14 +1,10 @@
 package multisearch
 
-import (
-	"unicode"
-)
-
 type tokenImpl struct {
-	content        string
-	ignored        bool
-	previous, next *tokenImpl
-	matchedBy      []*matchImpl
+	content   string
+	ignored   bool
+	previous  *tokenImpl
+	matchedBy []*matchImpl
 }
 
 // newTokenImpl is a constructor for the tokenImpl object.
@@ -20,13 +16,6 @@ func newTokenImpl() *tokenImpl {
 
 func (t *tokenImpl) Ignored() bool {
 	return t.ignored
-}
-
-func (t *tokenImpl) Next() Token {
-	if t.next == nil {
-		return nil
-	}
-	return t.next
 }
 
 func (t *tokenImpl) Matches() []Match {
@@ -57,33 +46,21 @@ func (t *tokenImpl) recordMatch(match *matchImpl) {
 	}
 }
 
-func isWordRune(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsNumber(r)
-}
-
-func tokenize(input string, callback func(*tokenImpl)) *tokenImpl {
-	currentToken := newTokenImpl()
-	firstToken := currentToken
-	var previousToken *tokenImpl
-	for _, r := range input {
-		isWord := unicode.IsLetter(r) || unicode.IsNumber(r)
-		if currentToken.content == "" || isWord != currentToken.ignored {
-			currentToken.content += string(r)
-			currentToken.ignored = !isWord
+func tokenize(input string, tok Tokenizer, cb bounaryCallack) {
+	var captured bool
+	start, inLength := 0, len(input)
+	for pos, r := range input {
+		thisCaptured := tok(r)
+		if pos == 0 {
+			captured = thisCaptured
 			continue
 		}
-		if isWord == currentToken.ignored {
-			previousToken = currentToken
-			currentToken = newTokenImpl()
-			previousToken.next = currentToken
-			currentToken.content = string(r)
-			currentToken.previous = previousToken
-			currentToken.ignored = !isWord
-			callback(previousToken)
+		if captured != thisCaptured {
+			cb(start, pos, captured)
+			captured, start = thisCaptured, pos
+		}
+		if pos == inLength-1 {
+			cb(start, inLength, captured)
 		}
 	}
-	if currentToken.content != "" {
-		callback(currentToken)
-	}
-	return firstToken
 }

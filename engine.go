@@ -2,12 +2,8 @@ package multisearch
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
-)
-
-var (
-	wordSplitter = regexp.MustCompile("[^\\w\\pL]+")
+	"unicode"
 )
 
 type Engine struct {
@@ -23,6 +19,9 @@ type Engine struct {
 
 	// Stemmer to be used for sanitization purposes.
 	stemmer Stemmer
+
+	// Tokenizer to be used for tokenization purposes.
+	tokenizer Tokenizer
 }
 
 func NewEngine(stemmer Stemmer) *Engine {
@@ -31,18 +30,21 @@ func NewEngine(stemmer Stemmer) *Engine {
 		ignores:   make(map[string]struct{}),
 		originals: make(map[*matchImpl]string),
 		stemmer:   stemmer,
+		tokenizer: func(r rune) bool {
+			return unicode.IsLetter(r) || unicode.IsNumber(r)
+		},
 	}
 }
 
-func (e *Engine) Ignore(stopword string) error {
-	if len(wordSplitter.Split(stopword, -1)) > 1 {
-		return fmt.Errorf("ignore not a single word: %q", stopword)
+func (e *Engine) Ignore(input string) error {
+	chunks := e.sanitize(input)
+	if len(chunks) == 0 {
+		return fmt.Errorf("duplicate or empty ignore: %q", input)
 	}
-	stopword = e.stemmer.StemString(strings.ToLower(stopword))
-	if _, exists := e.ignores[stopword]; exists {
-		return fmt.Errorf("duplicate ignore: %q", stopword)
+	if len(chunks) != 1 {
+		return fmt.Errorf("ignore not a single word: %q", input)
 	}
-	e.ignores[stopword] = struct{}{}
+	e.ignores[chunks[0]] = struct{}{}
 	return nil
 }
 
@@ -59,10 +61,14 @@ func (e *Engine) Match(needle string) (Match, error) {
 	return newMatch, nil
 }
 
-func (e *Engine) Process(input string) Token {
-	cursors := make(map[*matchImpl]struct{})
+func (e *Engine) Process(input string) []Token {
+	cursors, tokens := make(map[*matchImpl]struct{}), make([]Token, 0)
 	cursors[e.root] = struct{}{}
-	return tokenize(input, func(t *tokenImpl) {
+	var lastToken *tokenImpl = nil
+	tokenize(input, e.tokenizer, func(start, end int, captured bool) {
+		t := newTokenImpl()
+		tokens = append(tokens, t)
+		t.content, t.ignored = input[start:end], !captured
 		if t.ignored {
 			return
 		}
@@ -71,35 +77,40 @@ func (e *Engine) Process(input string) Token {
 			t.ignored = true
 			return
 		}
-		cursorsToDelete, cursorsToAdd := make([]*matchImpl, 0), make([]*matchImpl, 0)
+		t.previous, lastToken = lastToken, t
+		cDel, cAdd := make([]*matchImpl, 0), make([]*matchImpl, 0)
 		for cursor, _ := range cursors {
 			nextCursor, exists := cursor.children[stem]
 			if exists && nextCursor.terminal {
 				t.recordMatch(nextCursor)
 			}
 			if exists && !nextCursor.terminal {
-				cursorsToAdd = append(cursorsToAdd, nextCursor)
+				cAdd = append(cAdd, nextCursor)
 			}
 			if cursor != e.root {
-				cursorsToDelete = append(cursorsToDelete, cursor)
+				cDel = append(cDel, cursor)
 			}
 		}
-		for _, cursor := range cursorsToDelete {
+		for _, cursor := range cDel {
 			delete(cursors, cursor)
 		}
-		for _, cursor := range cursorsToAdd {
+		for _, cursor := range cAdd {
 			cursors[cursor] = struct{}{}
 		}
 	})
+	return tokens
 }
 
-func (e *Engine) sanitize(text string) []string {
+func (e *Engine) sanitize(input string) []string {
 	retVal := make([]string, 0)
-	for _, token := range wordSplitter.Split(text, -1) {
-		word := e.stemmer.StemString(strings.ToLower(token))
+	tokenize(input, e.tokenizer, func(start, end int, captured bool) {
+		if !captured {
+			return
+		}
+		word := e.stemmer.StemString(strings.ToLower(input[start:end]))
 		if _, isStopword := e.ignores[word]; !isStopword {
 			retVal = append(retVal, word)
 		}
-	}
+	})
 	return retVal
 }

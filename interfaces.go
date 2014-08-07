@@ -1,5 +1,13 @@
 package multisearch
 
+// Tokenizer is a function capable of taking a rune as an input and deciding
+// whether the rune should be captured (true) or ignored (false).
+type Tokenizer func(rune) bool
+
+// bounaryCallack is a function called by the tokenize method on each token it
+// identifies.
+type bounaryCallack func(start, end int, matched bool)
+
 // Match represents a matched term.
 type Match interface {
 	// Size provides the total length of the Match.
@@ -14,9 +22,6 @@ type Match interface {
 type Token interface {
 	// Ignored tells whether this given piece of text has been ignored.
 	Ignored() bool
-
-	// Next provides a link to the subsequent Token.
-	Next() Token
 
 	// Matches returns an array of Matches that were matched against
 	// this particular piece of text.
