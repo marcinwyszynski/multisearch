@@ -35,17 +35,29 @@ func NewEngine(stemmer Stemmer) *Engine {
 	}
 }
 
-func (e *Engine) Add(needle string, weight int) error {
+func (e *Engine) Ignore(stopword string) error {
+	if len(wordSplitter.Split(stopword, -1)) > 1 {
+		return fmt.Errorf("ignore not a single word: %q", stopword)
+	}
+	stopword = e.stemmer.StemString(strings.ToLower(stopword))
+	if _, exists := e.ignores[stopword]; exists {
+		return fmt.Errorf("duplicate ignore: %q", stopword)
+	}
+	e.ignores[stopword] = struct{}{}
+	return nil
+}
+
+func (e *Engine) Match(needle string, weight int) (Match, error) {
 	sanitized := e.sanitize(needle)
 	if len(sanitized) == 0 {
-		return fmt.Errorf("only consists of ignores: %q", needle)
+		return nil, fmt.Errorf("only consists of ignores: %q", needle)
 	}
-	newmatchImpl := e.root.add(sanitized, weight)
-	if original, existed := e.originals[newmatchImpl]; existed {
-		return fmt.Errorf("duplicate of %q: %q", original, needle)
+	newMatch := e.root.add(sanitized, weight)
+	if original, existed := e.originals[newMatch]; existed {
+		return nil, fmt.Errorf("duplicate of %q: %q", original, needle)
 	}
-	e.originals[newmatchImpl] = needle
-	return nil
+	e.originals[newMatch] = needle
+	return newMatch, nil
 }
 
 func (e *Engine) Process(input string) Token {
@@ -80,18 +92,6 @@ func (e *Engine) Process(input string) Token {
 			cursors[cursor] = struct{}{}
 		}
 	})
-}
-
-func (e *Engine) Ignore(stopword string) error {
-	if len(wordSplitter.Split(stopword, -1)) > 1 {
-		return fmt.Errorf("ignore not a single word: %q", stopword)
-	}
-	stopword = e.stemmer.StemString(strings.ToLower(stopword))
-	if _, exists := e.ignores[stopword]; exists {
-		return fmt.Errorf("duplicate ignore: %q", stopword)
-	}
-	e.ignores[stopword] = struct{}{}
-	return nil
 }
 
 func (e *Engine) sanitize(text string) []string {
