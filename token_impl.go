@@ -12,32 +12,32 @@ var (
 	charRegexp = regexp.MustCompile("[\\pL\\w]")
 )
 
-type token struct {
+type tokenImpl struct {
 	content        string
 	ignored        bool
-	previous, next *token
-	matchedBy      []*node
+	previous, next *tokenImpl
+	matchedBy      []*matchImpl
 }
 
-// newToken is a constructor for the token object.
-func newToken() *token {
-	return &token{
-		matchedBy: make([]*node, 0),
+// newTokenImpl is a constructor for the tokenImpl object.
+func newTokenImpl() *tokenImpl {
+	return &tokenImpl{
+		matchedBy: make([]*matchImpl, 0),
 	}
 }
 
-func (t *token) Ignored() bool {
+func (t *tokenImpl) Ignored() bool {
 	return t.ignored
 }
 
-func (t *token) Next() Token {
+func (t *tokenImpl) Next() Token {
 	if t.next == nil {
 		return nil
 	}
 	return t.next
 }
 
-func (t *token) Matches() []Match {
+func (t *tokenImpl) Matches() []Match {
 	retVal := make([]Match, len(t.matchedBy), len(t.matchedBy))
 	for i, node := range t.matchedBy {
 		retVal[i] = node
@@ -45,7 +45,7 @@ func (t *token) Matches() []Match {
 	return retVal
 }
 
-func (t *token) TopMatch() Match {
+func (t *tokenImpl) TopMatch() Match {
 	if !t.matched() {
 		return nil
 	}
@@ -53,13 +53,13 @@ func (t *token) TopMatch() Match {
 	return t.matchedBy[0]
 }
 
-func (t *token) String() string {
+func (t *tokenImpl) String() string {
 	return t.content
 }
 
 // recordMatch back-propagates a successful match. Please note that ignored
 // tokens are also marked with the match.
-func (t *token) recordMatch(match *node) {
+func (t *tokenImpl) recordMatch(match *matchImpl) {
 	this, recorded := t, 0
 	for {
 		this.matchedBy = append(this.matchedBy, match)
@@ -75,14 +75,14 @@ func (t *token) recordMatch(match *node) {
 
 // matched reports whether the token has been matched by one or more terminal
 // nodes.
-func (t *token) matched() bool {
+func (t *tokenImpl) matched() bool {
 	return len(t.matchedBy) > 0
 }
 
-func tokenize(input string, callback func(*token)) *token {
-	currentToken := newToken()
+func tokenize(input string, callback func(*tokenImpl)) *tokenImpl {
+	currentToken := newTokenImpl()
 	firstToken := currentToken
-	var previousToken *token
+	var previousToken *tokenImpl
 	for _, char := range strings.Split(input, "") {
 		isWord := charRegexp.MatchString(char)
 		if currentToken.content == "" || isWord != currentToken.ignored {
@@ -92,7 +92,7 @@ func tokenize(input string, callback func(*token)) *token {
 		}
 		if isWord == currentToken.ignored {
 			previousToken = currentToken
-			currentToken = newToken()
+			currentToken = newTokenImpl()
 			previousToken.next = currentToken
 			currentToken.content = char
 			currentToken.previous = previousToken

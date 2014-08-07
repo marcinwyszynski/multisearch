@@ -13,14 +13,14 @@ var (
 
 type Engine struct {
 	// Root of the search tree.
-	root *node
+	root *matchImpl
 
 	// Collection of ignored words. Stored in a map for greater retrieval
 	// efficiency.
 	ignores map[string]struct{}
 
-	// Mapping of original terms to matched nodes.
-	originals map[*node]string
+	// Mapping of original terms to matched matchImpls.
+	originals map[*matchImpl]string
 
 	// Stemmer to be used for sanitization purposes.
 	stemmer Stemmer
@@ -28,9 +28,9 @@ type Engine struct {
 
 func NewEngine(stemmer Stemmer) *Engine {
 	return &Engine{
-		root:      newNode("", 0, 0),
+		root:      newMatchImpl("", 0, 0),
 		ignores:   make(map[string]struct{}),
-		originals: make(map[*node]string),
+		originals: make(map[*matchImpl]string),
 		stemmer:   stemmer,
 	}
 }
@@ -40,18 +40,18 @@ func (e *Engine) Add(needle string, weight int) error {
 	if len(sanitized) == 0 {
 		return fmt.Errorf("only consists of ignores: %q", needle)
 	}
-	newNode := e.root.add(sanitized, weight)
-	if original, existed := e.originals[newNode]; existed {
+	newmatchImpl := e.root.add(sanitized, weight)
+	if original, existed := e.originals[newmatchImpl]; existed {
 		return fmt.Errorf("duplicate of %q: %q", original, needle)
 	}
-	e.originals[newNode] = needle
+	e.originals[newmatchImpl] = needle
 	return nil
 }
 
 func (e *Engine) Process(input string) Token {
-	cursors := make(map[*node]struct{})
+	cursors := make(map[*matchImpl]struct{})
 	cursors[e.root] = struct{}{}
-	return tokenize(input, func(t *token) {
+	return tokenize(input, func(t *tokenImpl) {
 		if t.ignored {
 			return
 		}
@@ -60,7 +60,7 @@ func (e *Engine) Process(input string) Token {
 			t.ignored = true
 			return
 		}
-		cursorsToDelete, cursorsToAdd := make([]*node, 0), make([]*node, 0)
+		cursorsToDelete, cursorsToAdd := make([]*matchImpl, 0), make([]*matchImpl, 0)
 		for cursor, _ := range cursors {
 			nextCursor, exists := cursor.children[stem]
 			if exists && nextCursor.terminal {
