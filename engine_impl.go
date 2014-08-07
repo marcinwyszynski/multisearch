@@ -3,10 +3,9 @@ package multisearch
 import (
 	"fmt"
 	"strings"
-	"unicode"
 )
 
-type Engine struct {
+type engineImpl struct {
 	// Root of the search tree.
 	root *matchImpl
 
@@ -24,19 +23,17 @@ type Engine struct {
 	tokenizer Tokenizer
 }
 
-func NewEngine(stemmer Stemmer) *Engine {
-	return &Engine{
+func NewEngine(stemmer Stemmer, tokenizer Tokenizer) Engine {
+	return &engineImpl{
 		root:      newMatchImpl("", 0),
 		ignores:   make(map[string]struct{}),
 		originals: make(map[*matchImpl]string),
 		stemmer:   stemmer,
-		tokenizer: func(r rune) bool {
-			return unicode.IsLetter(r) || unicode.IsNumber(r)
-		},
+		tokenizer: tokenizer,
 	}
 }
 
-func (e *Engine) Ignore(input string) error {
+func (e *engineImpl) Ignore(input string) error {
 	chunks := e.sanitize(input)
 	if len(chunks) == 0 {
 		return fmt.Errorf("duplicate or empty ignore: %q", input)
@@ -48,7 +45,7 @@ func (e *Engine) Ignore(input string) error {
 	return nil
 }
 
-func (e *Engine) Match(needle string) (Match, error) {
+func (e *engineImpl) Match(needle string) (Match, error) {
 	sanitized := e.sanitize(needle)
 	if len(sanitized) == 0 {
 		return nil, fmt.Errorf("only consists of ignores: %q", needle)
@@ -61,7 +58,7 @@ func (e *Engine) Match(needle string) (Match, error) {
 	return newMatch, nil
 }
 
-func (e *Engine) Process(input string) []Token {
+func (e *engineImpl) Process(input string) []Token {
 	cursors, tokens := make(map[*matchImpl]struct{}), make([]Token, 0)
 	cursors[e.root] = struct{}{}
 	var lastToken *tokenImpl = nil
@@ -101,7 +98,7 @@ func (e *Engine) Process(input string) []Token {
 	return tokens
 }
 
-func (e *Engine) sanitize(input string) []string {
+func (e *engineImpl) sanitize(input string) []string {
 	retVal := make([]string, 0)
 	tokenize(input, e.tokenizer, func(start, end int, captured bool) {
 		if !captured {

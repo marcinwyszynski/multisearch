@@ -8,6 +8,20 @@ type Tokenizer func(rune) bool
 // identifies.
 type bounaryCallack func(start, end int, matched bool)
 
+// Engine represents a multisearch engine capable of registering new matches,
+// ignores (stopwords) and - most importantly - processing new inputs.
+type Engine interface {
+	// Ignore registers a new ignored word.
+	Ignore(input string) error
+
+	// Match registers and returns a new Match.
+	Match(needle string) (Match, error)
+
+	// Process breaks up the input into a slice of Tokens based on Matches
+	// and ignores.
+	Process(input string) []Token
+}
+
 // Match represents a matched term.
 type Match interface {
 	// Size provides the total length of the Match.

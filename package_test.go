@@ -1,9 +1,6 @@
 package multisearch
 
-import (
-	"testing"
-	"unicode"
-)
+import "testing"
 
 type FakeStemmer struct{}
 
@@ -13,9 +10,6 @@ func (f *FakeStemmer) StemString(input string) string {
 
 func TestTokenize(t *testing.T) {
 	input := " pełnoziarnista mąka ryżowa "
-	tokenizer := func(r rune) bool {
-		return unicode.IsLetter(r) || unicode.IsNumber(r)
-	}
 	type capture struct {
 		content  string
 		captured bool
@@ -24,7 +18,7 @@ func TestTokenize(t *testing.T) {
 	onBoundary := func(start, end int, captured bool) {
 		captures = append(captures, capture{input[start:end], captured})
 	}
-	tokenize(input, tokenizer, onBoundary)
+	tokenize(input, WordFinder, onBoundary)
 	for _, i := range []int{0, 2, 4, 6} {
 		expected, actual := " ", captures[i].content
 		if expected != actual {
@@ -41,7 +35,7 @@ func TestTokenize(t *testing.T) {
 }
 
 func TestIgnore(t *testing.T) {
-	eng := NewEngine(&FakeStemmer{})
+	eng := NewEngine(&FakeStemmer{}, WordFinder)
 	ignore := "mąka"
 	if err := eng.Ignore(ignore); err != nil {
 		t.Fatalf("eng.Ignore(%q) err = %v, expected nil", ignore, err)
@@ -49,7 +43,7 @@ func TestIgnore(t *testing.T) {
 }
 
 func TestEngine(t *testing.T) {
-	eng := NewEngine(&FakeStemmer{})
+	eng := NewEngine(&FakeStemmer{}, WordFinder)
 	needle := "pełnoziarnista ryżowa"
 	if _, err := eng.Match(needle); err != nil {
 		t.Fatalf("eng.Add(%q) err = %v, expected nil", needle, err)
