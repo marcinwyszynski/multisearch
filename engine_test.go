@@ -13,11 +13,11 @@ func (f *FakeStemmer) StemString(input string) string {
 func TestEngine(t *testing.T) {
 	eng := NewEngine(&FakeStemmer{})
 	needle := "pełnoziarnista ryżowa"
-	if _, err := eng.Match(needle, 1); err != nil {
+	if _, err := eng.Match(needle); err != nil {
 		t.Fatalf("eng.Add(%q) err = %v, expected nil", needle, err)
 	}
 	needle = "ryżowa jak"
-	if _, err := eng.Match(needle, 2); err != nil {
+	if _, err := eng.Match(needle); err != nil {
 		t.Fatalf("eng.Add(%q) err = %v, expected nil", needle, err)
 	}
 	ignore := "mąka"
@@ -43,13 +43,6 @@ func TestEngine(t *testing.T) {
 			if len(k.Matches()) != 2 {
 				msg := "len(k.Matches()) = %d for %q, expected 2"
 				t.Errorf(msg, len(k.Matches()), k.String())
-			}
-			expTopMatch := "ryżowa jak"
-			actual := k.TopMatch().String()
-			if actual != expTopMatch {
-				t.Errorf("topMatch weight: %d", k.TopMatch().Weight())
-				msg := "k.topMatch for %q = %q, expected %q"
-				t.Errorf(msg, k.String(), actual, expTopMatch)
 			}
 		}
 	}

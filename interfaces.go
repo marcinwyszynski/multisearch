@@ -7,9 +7,6 @@ type Match interface {
 
 	// String returns a full string representation of the Match.
 	String() string
-
-	// Weight represents a user-defined weight of the Match.
-	Weight() int
 }
 
 // Token represents a piece of processed text. From user's perspective this is
@@ -24,10 +21,6 @@ type Token interface {
 	// Matches returns an array of Matches that were matched against
 	// this particular piece of text.
 	Matches() []Match
-
-	// TopMatch represents the highest scoring Match with weight considered
-	// first, and size considered second.
-	TopMatch() Match
 
 	// String returns the content of the token.
 	String() string

@@ -28,7 +28,7 @@ type Engine struct {
 
 func NewEngine(stemmer Stemmer) *Engine {
 	return &Engine{
-		root:      newMatchImpl("", 0, 0),
+		root:      newMatchImpl("", 0),
 		ignores:   make(map[string]struct{}),
 		originals: make(map[*matchImpl]string),
 		stemmer:   stemmer,
@@ -47,12 +47,12 @@ func (e *Engine) Ignore(stopword string) error {
 	return nil
 }
 
-func (e *Engine) Match(needle string, weight int) (Match, error) {
+func (e *Engine) Match(needle string) (Match, error) {
 	sanitized := e.sanitize(needle)
 	if len(sanitized) == 0 {
 		return nil, fmt.Errorf("only consists of ignores: %q", needle)
 	}
-	newMatch := e.root.add(sanitized, weight)
+	newMatch := e.root.add(sanitized)
 	if original, existed := e.originals[newMatch]; existed {
 		return nil, fmt.Errorf("duplicate of %q: %q", original, needle)
 	}

@@ -2,7 +2,6 @@ package multisearch
 
 import (
 	"regexp"
-	"sort"
 	"strings"
 )
 
@@ -45,14 +44,6 @@ func (t *tokenImpl) Matches() []Match {
 	return retVal
 }
 
-func (t *tokenImpl) TopMatch() Match {
-	if !t.matched() {
-		return nil
-	}
-	sort.Sort(byWeight(t.matchedBy))
-	return t.matchedBy[0]
-}
-
 func (t *tokenImpl) String() string {
 	return t.content
 }
@@ -71,12 +62,6 @@ func (t *tokenImpl) recordMatch(match *matchImpl) {
 		}
 		this = this.previous
 	}
-}
-
-// matched reports whether the token has been matched by one or more terminal
-// nodes.
-func (t *tokenImpl) matched() bool {
-	return len(t.matchedBy) > 0
 }
 
 func tokenize(input string, callback func(*tokenImpl)) *tokenImpl {
