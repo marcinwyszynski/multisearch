@@ -23,6 +23,7 @@ type engineImpl struct {
 	tokenizer Tokenizer
 }
 
+// NewEngine provides a public constructor for the Engine.
 func NewEngine(stemmer Stemmer, tokenizer Tokenizer) Engine {
 	return &engineImpl{
 		root:      newMatchImpl("", 0),
@@ -61,7 +62,7 @@ func (e *engineImpl) Match(needle string) (Match, error) {
 func (e *engineImpl) Process(input string) []Token {
 	cursors, tokens := make(map[*matchImpl]struct{}), make([]Token, 0)
 	cursors[e.root] = struct{}{}
-	var lastToken *tokenImpl = nil
+	var lastToken *tokenImpl
 	tokenize(input, e.tokenizer, func(start, end int, captured bool) {
 		t := newTokenImpl()
 		tokens = append(tokens, t)
@@ -76,7 +77,7 @@ func (e *engineImpl) Process(input string) []Token {
 		}
 		t.previous, lastToken = lastToken, t
 		cDel, cAdd := make([]*matchImpl, 0), make([]*matchImpl, 0)
-		for cursor, _ := range cursors {
+		for cursor := range cursors {
 			nextCursor, exists := cursor.children[stem]
 			if exists && nextCursor.terminal {
 				t.recordMatch(nextCursor)
